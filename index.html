@@ -322,13 +322,13 @@ const GEO={};function bg(w,h,d){const k=w+'_'+h+'_'+d;return GEO[k]||(GEO[k]=new
 const CM={};function cm(c){return CM[c]||(CM[c]=new THREE.MeshLambertMaterial({color:new THREE.Color(c),map:TX.noise}))}
 function mb(w,h,d,m,x,y,z,parent){const o=new THREE.Mesh(bg(w,h,d),typeof m==='string'?cm(m):m);o.position.set(x,y,z);if(parent)parent.add(o);return o}
 function shade(hex,k){const c=new THREE.Color(hex);c.multiplyScalar(k);return '#'+c.getHexString()}
-function faceMats(skin,hair,style){
+function faceMats(skin,hair,style){const lh=style==='long'||style==='bob';
  const mk=fn=>{const c=document.createElement('canvas');c.width=c.height=8;const g=c.getContext('2d');fn((x,y,col,w=1,h=1)=>{g.fillStyle=col;g.fillRect(x,y,w,h)});const t=new THREE.CanvasTexture(c);t.magFilter=t.minFilter=THREE.NearestFilter;return new THREE.MeshLambertMaterial({map:t})};
- const front=mk(P=>{P(0,0,skin,8,8);P(0,0,hair,8,2);P(0,2,hair);P(7,2,hair);if(style==='long'){P(0,2,hair,1,5);P(7,2,hair,1,5)}
+ const front=mk(P=>{P(0,0,skin,8,8);P(0,0,hair,8,2);P(0,2,hair);P(7,2,hair);if(lh){P(0,2,hair,1,style==='bob'?4:5);P(7,2,hair,1,style==='bob'?4:5)}
   P(2,3,'#2b1d14',1,2);P(5,3,'#2b1d14',1,2);P(1,5,'#ff9aa2');P(6,5,'#ff9aa2');P(3,6,'#a0413c',2,1)});
- const side=mk(P=>{P(0,0,skin,8,8);P(0,0,hair,8,style==='long'?6:3);if(style!=='long')P(0,3,hair,3,2);P(4,4,shade(skin,.85),1,2)});
+ const side=mk(P=>{P(0,0,skin,8,8);P(0,0,hair,8,lh?(style==='bob'?5:6):3);if(!lh)P(0,3,hair,3,2);P(4,4,shade(skin,.85),1,2)});
  const top=mk(P=>P(0,0,hair,8,8));
- const back=mk(P=>{P(0,0,hair,8,8);if(style!=='long')P(0,6,skin,8,2)});
+ const back=mk(P=>{P(0,0,hair,8,8);if(!lh)P(0,6,skin,8,2)});
  const bot=mk(P=>P(0,0,skin,8,8));
  return[side,side,top,bot,front,back]}
 function textSprite(text,{bg='rgba(43,33,24,.55)',fg='#ffffff',h=.3,font=40}={}){
@@ -338,6 +338,16 @@ function textSprite(text,{bg='rgba(43,33,24,.55)',fg='#ffffff',h=.3,font=40}={})
  g.fillStyle=fg;g.textAlign='center';g.textBaseline='middle';g.fillText(text,w/2,c.height/2+2);
  const t=new THREE.CanvasTexture(c);t.minFilter=THREE.LinearFilter;
  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false,transparent:true}));s.scale.set(h*w/c.height,h,1);return s}
+function hairExtra(h,st,c){const B=(w,ht,d,x,y,z,col=c)=>mb(w,ht,d,col,x,y,z,h);
+ if(st==='curly'){B(.78,.24,.78,0,.68,0);for(const [x,z] of [[-.3,.3],[.3,.3],[-.3,-.3],[.3,-.3],[0,0]])B(.24,.2,.24,x,.82,z);B(.12,.34,.66,-.38,.46,-.03);B(.12,.34,.66,.38,.46,-.03);B(.7,.4,.12,0,.42,-.38);return}
+ B(.68,.1,.68,0,.66,0);
+ if(st==='long')B(.68,.64,.12,0,.2,-.33);
+ if(st==='bob'){B(.07,.42,.68,-.35,.38,0);B(.07,.42,.68,.35,.38,0);B(.68,.42,.07,0,.38,-.35)}
+ if(st==='bun')B(.28,.24,.28,0,.82,-.06);
+ if(st==='pony'){B(.2,.2,.16,0,.48,-.38);B(.18,.5,.16,0,.12,-.44);B(.22,.06,.2,0,.4,-.4,'#ff6b9d')}
+ if(st==='twin')for(const sx of [-1,1]){B(.18,.46,.18,sx*.42,.18,-.06);B(.14,.1,.14,sx*.42,.44,-.06,'#ff6b9d')}
+ if(st==='spiky')for(const [x,z,hh] of [[-.2,.15,.18],[0,.2,.24],[.2,.15,.18],[-.15,-.15,.2],[.15,-.15,.2],[0,-.25,.16]])B(.14,hh,.14,x,.7+hh/2,z);
+ if(st==='ribbon'){B(.68,.5,.1,0,.28,-.33);const r='#ff4f8b';B(.1,.1,.1,.2,.78,.12,r);B(.16,.16,.07,.08,.78,.12,r);B(.16,.16,.07,.32,.78,.12,r)}}
 function makeAvatar(o){
  const root=new THREE.Group(),g=new THREE.Group();root.add(g);
  const body=mb(.52,.56,.3,o.shirt,0,.84,0,g);
@@ -347,7 +357,7 @@ function makeAvatar(o){
  const head=new THREE.Group();head.position.set(0,1.11,0);g.add(head);
  mb(.64,.64,.64,faceMats(o.skin,o.hair,o.style),0,.32,0,head);
  if(o.style==='cap'){mb(.7,.18,.7,o.cap||'#e53935',0,.68,0,head);mb(.56,.06,.3,o.cap||'#e53935',0,.6,.45,head)}
- else{mb(.68,.1,.68,o.hair,0,.66,0,head);if(o.style==='long')mb(.68,.64,.12,o.hair,0,.2,-.33,head);if(o.style==='bun')mb(.28,.24,.28,o.hair,0,.82,-.06,head)}
+ else hairExtra(head,o.style,o.hair);
  let tag=null;if(o.name){tag=textSprite(o.name);tag.position.y=2.12;root.add(tag)}
  return{root,g,body,legL:legs[0],legR:legs[1],armL:arms[0],armR:arms[1],head,tag}}
 function pose(a,st,t,spd,o={}){
@@ -362,6 +372,20 @@ function pose(a,st,t,spd,o={}){
  if(o.climb){const k=Math.sin(t*8)*(o.mv?1:.15);a.armL.rotation.x=-2.6+k*.4;a.armR.rotation.x=-2.6-k*.4;a.legL.rotation.x=-.5+k*.5;a.legR.rotation.x=-.5-k*.5;a.g.position.y=0}
  if(o.cheer){a.armL.rotation.z=-2.8+Math.sin(t*10)*.2;a.armR.rotation.z=2.8-Math.sin(t*10)*.2}}
 function makePet(type){
+ if(type==='parrot'){const g=new THREE.Group();mb(.22,.3,.24,'#43c15a',0,.2,0,g);mb(.16,.14,.04,'#b6f09a',0,.2,.13,g);
+  const head=new THREE.Group();head.position.set(0,.43,.05);g.add(head);mb(.22,.2,.22,'#e53935',0,0,0,head);
+  mb(.05,.05,.02,'#ffffff',-.07,.04,.115,head);mb(.05,.05,.02,'#ffffff',.07,.04,.115,head);mb(.03,.03,.02,'#222',-.07,.035,.125,head);mb(.03,.03,.02,'#222',.07,.035,.125,head);mb(.08,.1,.1,'#ffc107',0,-.04,.15,head);
+  const wings=[-1,1].map(s=>{const w=new THREE.Group();w.position.set(s*.12,.33,0);g.add(w);mb(.05,.24,.2,'#2e7dd7',s*.03,-.11,0,w);mb(.05,.08,.16,'#ffd23f',s*.03,-.25,-.02,w);return w});
+  const tail=new THREE.Group();tail.position.set(0,.1,-.12);g.add(tail);mb(.12,.04,.32,'#e53935',0,0,-.16,tail);mb(.08,.04,.22,'#2e7dd7',0,.03,-.13,tail);tail.rotation.x=.5;
+  const legs=[-.05,.05].map(x=>mb(.04,.08,.04,'#888888',x,.02,0,g));
+  return{root:g,head,tail,legs,wings,fly:true,type}}
+ if(type==='rabbit'){const g=new THREE.Group(),c='#fafafa',pk='#ffb3c6';mb(.32,.28,.42,c,0,.24,0,g);
+  const head=new THREE.Group();head.position.set(0,.46,.22);g.add(head);mb(.28,.26,.26,c,0,0,0,head);
+  mb(.04,.05,.02,'#222',-.07,.03,.135,head);mb(.04,.05,.02,'#222',.07,.03,.135,head);mb(.05,.04,.02,pk,0,-.05,.135,head);
+  for(const sx of [-1,1]){mb(.07,.3,.05,c,sx*.07,.27,-.02,head);mb(.04,.22,.02,pk,sx*.07,.27,.012,head)}
+  const tail=new THREE.Group();tail.position.set(0,.3,-.22);g.add(tail);mb(.12,.12,.1,'#ffffff',0,0,-.03,tail);
+  const legs=[[-.1,.14],[.1,.14],[-.1,-.13],[.1,-.13]].map(([x,z],i)=>mb(i<2?.07:.1,.12,i<2?.08:.16,c,x,.06,z,g));
+  return{root:g,head,tail,legs,hop:true,type}}
  const dog=type==='dog',c=dog?'#c98a4b':'#f4a24c',c2=dog?'#7a4d27':'#fff3e0';
  const g=new THREE.Group();mb(.34,.28,.56,c,0,.3,0,g);
  const head=new THREE.Group();head.position.set(0,.52,.3);g.add(head);mb(.36,.3,.3,c,0,0,0,head);
@@ -561,11 +585,11 @@ const SKINS=['#ffdbb5','#f5c59a','#e0a878','#b97c50'];
 const HAIRS=['#2b1d14','#6b4226','#e0b040','#ff8fb1','#4a4a8a'];
 const SHIRTS=['#ff6b6b','#ffd23f','#7ed957','#3d8bfd','#b388ff','#ff9f43','#ffffff','#4dd0e1'];
 const PANTS=['#3a5ba0','#2b2b2b','#8d6e63','#e57373'];
-const STYLES=[['short','짧은 머리'],['long','긴 머리'],['bun','똥머리'],['cap','모자']];
-const PETS=[['cat','고양이'],['dog','강아지'],['none','없음']];
+const STYLES=[['short','짧은 머리'],['long','긴 머리'],['bob','단발'],['pony','포니테일'],['twin','양갈래'],['bun','똥머리'],['curly','뽀글머리'],['spiky','삐죽머리'],['ribbon','리본'],['cap','모자']];
+const PETS=[['cat','고양이'],['dog','강아지'],['rabbit','토끼'],['parrot','앵무새'],['none','없음']];
 const NAMES=['민준','서연','하준','지우','도윤','하은','시우','서윤','예준','지아','주원','수아','유찬','채원','건우','다은'];
 let prof=Object.assign({name:'',skin:SKINS[0],hair:HAIRS[0],style:'short',shirt:SHIRTS[3],pants:PANTS[0],pet:'cat'},LS.get('me',{}));
-const look=(name,shirt)=>({name,skin:pick(SKINS),hair:pick(HAIRS.slice(0,3)),style:pick(['short','long','bun','cap']),cap:pick(SHIRTS),shirt:shirt||pick(SHIRTS),pants:pick(PANTS)});
+const look=(name,shirt)=>({name,skin:pick(SKINS),hair:pick(HAIRS.slice(0,3)),style:pick(STYLES)[0],cap:pick(SHIRTS),shirt:shirt||pick(SHIRTS),pants:pick(PANTS)});
 const P={x:0,y:0,z:4,vx:0,vz:0,vy:0,rot:PI,ground:true,state:'free',run:false,tray:null,visY:0,emote:0,eat:0,thr:0};
 let me=null,pet=null;
 function buildMe(){if(me){if(P.tray)me.g.remove(P.tray.g);scene.remove(me.root)}me=makeAvatar({...prof,name:prof.name||'나',cap:prof.shirt});scene.add(me.root);if(P.tray&&P.state!=='sit')attachTray();
@@ -597,13 +621,14 @@ function updateNPCs(dt,t){
     if(Math.hypot(n.x-ox,n.z-oz)<s*dt*.4)n.stuck+=dt;n.spd=s;n.rot=angLerp(n.rot,Math.atan2(dx,dz),Math.min(1,dt*8))}}}
   n.a.root.position.set(n.x,n.y,n.z);n.a.root.rotation.y=n.rot;pose(n.a,n.spd>.2?'walk':'idle',t+n.x,n.spd)}}
 function updatePet(dt,t){if(!pet)return;
- const fx=Math.sin(P.rot),fz=Math.cos(P.rot);const tx=P.x-fx*1.1+fz*.7,tz=P.z-fz*1.1-fx*.7;const d=dist(pet.x,pet.z,tx,tz);
+ const fx=Math.sin(P.rot),fz=Math.cos(P.rot);const bk=pet.fly?.45:1.1,sd=pet.fly?.6:.7;const tx=P.x-fx*bk+fz*sd,tz=P.z-fz*bk-fx*sd;const d=dist(pet.x,pet.z,tx,tz);
  if(d>14||Math.abs(pet.y-P.y)>2.2&&d>3){pet.x=tx;pet.z=tz;pet.y=P.y}
  let sp=0;if(d>.4){sp=Math.min(7,d*2.4);const dx=(tx-pet.x)/d,dz=(tz-pet.z)/d;let nx=pet.x+dx*sp*dt,nz=pet.z+dz*sp*dt;[nx,nz]=collide(nx,nz,pet.y,.22);pet.x=nx;pet.z=nz;pet.rot=angLerp(pet.rot,Math.atan2(dx,dz),Math.min(1,dt*8))}
  else pet.rot=angLerp(pet.rot,Math.atan2(P.x-pet.x,P.z-pet.z),Math.min(1,dt*3));
  const g=groundAt(pet.x,pet.z,pet.y);pet.y=lerp(pet.y,g,Math.min(1,dt*12));
- pet.root.position.set(pet.x,pet.y+(sp>.5?Math.abs(Math.sin(t*14))*.08:0),pet.z);pet.root.rotation.y=pet.rot;
- pet.tail.rotation.y=Math.sin(t*(pet.dog?14:3))*.5;pet.legs.forEach((l,i)=>l.rotation.x=sp>.5?Math.sin(t*14+(i%2?PI:0))*.6:0);pet.head.rotation.z=sp>.5?0:Math.sin(t*1.5)*.1}
+ const hop=pet.hop?(sp>.5?Math.abs(Math.sin(t*9))*.22:0):(sp>.5&&!pet.fly?Math.abs(Math.sin(t*14))*.08:0),hov=pet.fly?1.75+Math.sin(t*3)*.08:0;
+ pet.root.position.set(pet.x,pet.y+hop+hov,pet.z);pet.root.rotation.y=pet.rot;
+ pet.tail.rotation.y=Math.sin(t*(pet.dog?14:3))*(pet.fly?.15:.5);if(!pet.fly&&!pet.hop)pet.legs.forEach((l,i)=>l.rotation.x=sp>.5?Math.sin(t*14+(i%2?PI:0))*.6:0);if(pet.wings)pet.wings.forEach((w,i)=>w.rotation.z=(i?1:-1)*(sp>.5?.35+Math.sin(t*24)*.6:.1+Math.sin(t*5)*.12));pet.head.rotation.z=sp>.5?0:Math.sin(t*1.5)*.1}
 
 /* ---------- FX ---------- */
 const FX=[];
