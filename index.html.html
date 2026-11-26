@@ -1,0 +1,319 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>경명크래프트 - 중앙현관 복도 탐험판</title><style>*{box-sizing:border-box}body{margin:0;overflow:hidden;font-family:system-ui,'Malgun Gothic',sans-serif;background:#aee4ff}#hud{position:absolute;top:12px;left:12px;background:#ffffffec;border:3px solid #273e57;border-radius:14px;padding:12px;max-width:330px;z-index:3;box-shadow:4px 5px #22364b55}#hud h2{margin:0 0 6px;font-size:19px}#status{font-size:13px}button{font:inherit;cursor:pointer;border:2px solid #29445d;border-radius:9px;background:#fff;padding:7px 10px;font-weight:700}button:hover{background:#ffefae}#actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}#panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(92vw,540px);max-height:85vh;overflow:auto;background:#fff;border:5px solid #354d62;border-radius:16px;padding:20px;z-index:6;box-shadow:0 14px 45px #18283a88;display:none}#panel h2{margin-top:0}#panel .close{float:right}#tip{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:#203d58e8;color:white;border-radius:14px;padding:10px 15px;text-align:center;font-size:13px;z-index:3;max-width:96vw}#mobile{position:absolute;bottom:75px;left:12px;display:grid;grid-template-columns:repeat(3,48px);gap:3px;z-index:3}#mobile button{height:45px;background:#ffffffbb}#interact{position:absolute;right:16px;bottom:90px;z-index:3;background:#ffe07c}#toast{position:absolute;top:12px;right:12px;background:#203d58;color:white;padding:10px;border-radius:10px;display:none;z-index:7}#avatarPick{display:flex;gap:7px;flex-wrap:wrap}.avatar{font-size:24px}input,textarea,select{font:inherit;width:100%;padding:9px;border:2px solid #aaa;border-radius:8px;margin:6px 0}small{color:#566}#menu{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}#menu div{background:#dce5ea;border:3px solid #8e9ca5;border-radius:13px;padding:12px 4px;text-align:center;font-weight:700}#menu span{font-size:29px;display:block}#mini{height:18px;background:#eee;border:2px solid #333;border-radius:10px;overflow:hidden;position:relative;margin:16px 0}#cursor{position:absolute;top:0;bottom:0;width:5px;background:#f44;left:0}#target{position:absolute;left:42%;width:16%;height:100%;background:#71db81}canvas{display:block;touch-action:none}#mobile button{touch-action:none}@media(max-width:650px){#hud{max-width:235px;padding:8px}#hud h2{font-size:15px}#actions button{font-size:11px;padding:4px}#tip{font-size:11px}#panel{padding:12px}}#exitRoom{position:absolute;right:16px;bottom:150px;z-index:4;background:#ffe4ef;display:none}#hintRoom{position:absolute;right:16px;top:14px;z-index:3;background:#fff9d8;border:2px solid #51687c;border-radius:12px;padding:8px;display:none;font-size:13px}#mobile{display:none;bottom:65px;left:20px;touch-action:none}#stick{width:116px;height:116px;border:2px solid #ffffffbb;border-radius:50%;background:#203d5866;position:relative;touch-action:none;user-select:none}#knob{position:absolute;left:50%;top:50%;width:48px;height:48px;border-radius:50%;background:#ffffffdd;border:2px solid #40566b;transform:translate(-50%,-50%);pointer-events:none}canvas{touch-action:none}@media(pointer:coarse),(max-width:650px){#mobile{display:block}#tip{pointer-events:none}}</style></head><body><div id="hud"><h2>🧱 경명크래프트 · 실제 학교형 블록 탐험</h2><div id="status">로딩 중…</div><div id="actions"><button id="enterLobby">🏫 중앙현관 입장 (확장 11)</button><button id="goLibrary" hidden>📚 도서관</button><button id="goLunch" hidden>🍱 급식실</button><button id="goWash" hidden>🧼 화장실</button><button id="goCourt" hidden>🔴 중앙 안뜰</button><button id="readQuiz" hidden>📚 독서 퀴즈</button><button id="newBooks" hidden>📖 신간도서</button><button id="choose">👤 아바타</button><button id="map">🗺️ 공간 안내</button><button id="cam">🔄 시점</button></div></div><div id="toast"></div><div id="panel"></div><div id="mobile"><div id="stick" aria-label="이동 조이스틱"><div id="knob"></div></div></div><button id="interact">✨ 입장 / 활동 (E)</button><div id="tip">WASD·조이스틱 이동 | 벽·가구·NPC 통과 불가 | 문 앞 E로 입장 | 드래그로 시점 회전</div><button id="exitRoom">🚪 운동장으로 나가기</button><div id="hintRoom"></div><script>window.addEventListener("error",e=>{document.getElementById("status").textContent="실행 오류: "+e.message});</script><script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9fdbff);scene.fog=new THREE.Fog(0x9fdbff,90,180);
+const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,300);const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;document.body.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff,0x8298a4,2.3));const sun=new THREE.DirectionalLight(0xffffff,2.1);sun.position.set(-20,45,15);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-70;sun.shadow.camera.right=70;sun.shadow.camera.top=70;sun.shadow.camera.bottom=-70;scene.add(sun);
+const mat=c=>new THREE.MeshLambertMaterial({color:c});const materials={grass:mat(0x7bc76c),road:mat(0xf3dfb2),brick:mat(0xffb17a),roof:mat(0x3d89c7),window:mat(0x8de8ff),white:mat(0xfff7d6),dark:mat(0x354f67),wood:mat(0xc78a4c),gold:mat(0xffd24c)};
+function cube(parent,x,y,z,w,h,d,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof m==='number'?mat(m):m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}function group(parent,x=0,y=0,z=0){let g=new THREE.Group();g.position.set(x,y,z);parent.add(g);return g}function textSprite(label,w=4){const c=document.createElement('canvas');c.width=768;c.height=160;const t=c.getContext('2d');t.fillStyle='#fff6d5';t.fillRect(0,0,768,160);t.strokeStyle='#33495c';t.lineWidth=14;t.strokeRect(8,8,752,144);t.fillStyle='#203950';t.font='bold 68px sans-serif';t.textAlign='center';t.textBaseline='middle';t.fillText(label,384,83,740);let tex=new THREE.CanvasTexture(c);let s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:true}));s.scale.set(w,w*160/768,1);return s}
+const ground=cube(scene,0,-.55,0,160,1,160,materials.grass);ground.receiveShadow=true;cube(scene,0,-.02,13,33,.12,27,0xd5b68a);for(let i=-15;i<=15;i+=3){cube(scene,i,.05,1,1,.07,1,0xe9d6ae)}
+function tree(x,z){const g=group(scene,x,0,z);cube(g,0,1,0,.8,2,.8,materials.wood);for(let y=2;y<5;y++)cube(g,0,y,0,4.5-(y-2)*.8,1.1,4.5-(y-2)*.8,0x4eaa5b)}for(let x of [-29,-24,24,29])for(let z of [-12,4,18,31])tree(x,z);
+// 사진을 참고한 배치: 운동장을 감싸는 긴 교사동, 연결동, 파란 지붕, 연두색 포인트.
+// 실제 건축 도면이 아닌 사진 기반의 게임용 근사 배치입니다.
+const locations=[
+{id:'lunch',name:'급식실',emoji:'🍱',x:-24,z:-12,doorZ:-7.3},
+{id:'council',name:'학생자치실',emoji:'📮',x:-12,z:-12,doorZ:-7.3},
+{id:'lobby',name:'중앙현관',emoji:'🏫',x:0,z:-12,doorZ:-10.5},
+{id:'library',name:'도서관',emoji:'📚',x:12,z:-12,doorZ:-7.3},
+{id:'gym',name:'체육관',emoji:'🏀',x:24,z:-12,doorZ:-7.3}];
+const outdoorSolids=[];let indoorSolids=[];
+function solid(x,z,w,d){outdoorSolids.push({x,z,w,d})}
+function wing(x,z,w,d,h,accent=0xb5e558){
+ const g=group(scene,x,0,z);
+ cube(g,0,h/2,0,w,h,d,0xd69b7c);
+ cube(g,0,h+.45,0,w+.8,.9,d+.8,0x328dbb);
+ cube(g,0,h-.8,d/2+.08,w,.95,.2,accent);
+ for(let floor=0;floor<3;floor++)for(let xx=-w/2+2.3;xx<w/2-1;xx+=3.6){
+  cube(g,xx,1.7+floor*2.7,d/2+.15,2.1,1.65,.16,0x9de4f7);
+  cube(g,xx,1.7+floor*2.7,d/2+.25,.12,1.7,.13,0xf5fbff);
+ }
+ return g;
+}
+// 본관: 사진처럼 운동장 한쪽을 따라 이어지는 긴 3층 건물
+wing(0,-16,59,9,9.2,0xb9df47);
+// ㄱ자 연결동과 후관: 운동장을 향해 서로 이어지는 매스
+wing(-27,-26,12,13,9.2,0xd8e54a);
+wing(24,-26,12,13,9.2,0x65bbd8);
+wing(0,-32,48,8,9.2,0x88c849);
+// 운동장 반대편의 체육관 블록: 외관과 동선은 실제 도면이 아닌 근사치
+const sports=group(scene,33,0,-19);
+cube(sports,0,4,0,12,8,13,0xe0a889);
+cube(sports,0,8.7,0,13,1.4,14,0x2884b8);
+cube(sports,0,6.8,6.65,11,1.6,.2,0xd2e94b);
+// 통행 불가능한 건물 매스 (입구 부분은 앞쪽 별도 포털로 연결)
+solid(0,-16,59,9);solid(-27,-26,12,13);solid(24,-26,12,13);solid(0,-32,48,8);solid(33,-19,12,13);
+// 건물 정면의 문들은 출입용 상호작용 포털. 문 앞에서 E로 실제 3D 실내로 전환
+for(const loc of locations.filter(l=>l.id==='lobby')){
+ const g=group(scene,loc.x,0,-10.95);
+ cube(g,0,1.65,0,2.5,3.3,.22,0x385f74);
+ cube(g,0,1.65,.14,1.8,2.7,.12,0x95e4c9);
+ cube(g,-1.1,1.65,.24,.13,2.7,.13,0xffe3a1);
+ cube(g,1.1,1.65,.24,.13,2.7,.13,0xffe3a1);
+ let sign=textSprite(loc.emoji+' '+loc.name,4.6);sign.position.set(0,4.05,.4);g.add(sign);
+ cube(scene,loc.x,.06,-6.8,2.5,.09,7,0xffe5a7);
+}
+// 운동장: 학교를 마주보는 넓은 모래 운동장과 트랙
+cube(scene,0,.025,21,54,.1,40,0xdac28e);
+for(let z of [3,39])cube(scene,0,.11,z,53,.07,.25,0xffffff);
+for(let x of [-26,26])cube(scene,x,.11,21,.25,.07,36,0xffffff);
+for(let i=0;i<5;i++)cube(scene,-23+i*11.5,.14,42,5,.16,1,0xffffff);
+let title=textSprite('🏫 경명크래프트 · 우리 학교 탐험',15);title.position.set(0,11.2,-10.4);scene.add(title);
+function avatar(color=0x4285ff){let g=group(scene);cube(g,0,1.8,0,1.1,1.4,.7,color);cube(g,0,2.95,0,1.05,1.05,1.05,0xffd2a3);cube(g,-.75,1.8,0,.4,1.25,.5,color);cube(g,.75,1.8,0,.4,1.25,.5,color);cube(g,-.3,.65,0,.4,1.1,.5,0x384d7c);cube(g,.3,.65,0,.4,1.1,.5,0x384d7c);cube(g,-.22,3.02,.54,.12,.14,.08,0x283746);cube(g,.22,3.02,.54,.12,.14,.08,0x283746);cube(g,0,3.48,0,1.12,.23,1.12,0x604332);return g}const player=avatar();player.position.set(0,0,14);const npcs=[];for(let i=0;i<8;i++){let a=avatar([0xf56e81,0x62a8e7,0xffcf52,0x9b7fe2,0x5bc99c][i%5]);a.scale.setScalar(.84);a.position.set(-20+(i%4)*12,0,12+Math.floor(i/4)*15);npcs.push({a,phase:i*2.1,r:12+i%3*4,s:.12+i%3*.05,heading:i*2.399})}
+let yaw=0,pitch=.16,dist=13,keys={},inside=null,near=null,avatarColor=0x4285ff;const status=document.querySelector('#status'),panel=document.querySelector('#panel');const colors=[['파랑',0x4285ff],['분홍',0xff6b9d],['초록',0x42c48b],['노랑',0xffc845],['보라',0xa582e2]];
+function toast(t){const o=document.querySelector('#toast');o.textContent=t;o.style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>o.style.display='none',2600)}function show(title,html){panel.style.display='block';panel.innerHTML=`<button class="close" id="close">✕ 닫기</button><h2>${title}</h2>${html}`;document.querySelector('#close').onclick=close}function close(){panel.style.display='none';panel.style.opacity='1'}function pick(){show('👤 내 아바타 고르기','<p>원하는 색을 골라 주세요!</p><div id="avatarPick">'+colors.map(([n,c])=>`<button class="avatar" data-color="${c}">🧍 ${n}</button>`).join('')+'</div>');panel.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{let c=+b.dataset.color;player.children[0].material=mat(c);player.children[2].material=mat(c);player.children[3].material=mat(c);avatarColor=c;close();toast('아바타가 바뀌었어요!')})}
+document.querySelector('#enterLobby').onclick=()=>{if(ride)return;close();keys={};try{if(!inside)enterInterior('lobby');else if(inside!=='lobby')switchRoom('lobby')}catch(err){toast('입장 오류: '+err.message);console.error(err)}};document.querySelector('#choose').onclick=pick;document.querySelector('#map').onclick=()=>show('🗺️ 학교 공간 안내','<p>본관 가운데 <b>중앙현관</b>에서 <b>E</b>를 눌러 복도로 들어가고, 실내에서 직접 걸어다니세요. 가구 앞에서 <b>E</b>를 누르면 활동이 열려요.</p>'+locations.map(l=>`<p>${l.emoji} <b>${l.name}</b> — ${l.id==='lobby'?'본관 중앙 출입문':'복도 또는 외부 출입문'}</p>`).join('')+'<p>💡 다른 학생들은 자동으로 돌아다니는 NPC예요.</p>');document.querySelector('#cam').onclick=()=>{yaw+=Math.PI/2};document.querySelector('#interact').onclick=interact;
+window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys[k]=true;if(k===' '&&!e.repeat&&game&&game.active&&panel.style.display==='block'&&document.querySelector('#basket3d')){shoot();return}if(k==='e'&&!e.repeat)interact();if(k==='escape')close()});window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);document.querySelectorAll('[data-key]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();keys[b.dataset.key]=true;b.setPointerCapture(e.pointerId)});for(let evt of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(evt,()=>keys[b.dataset.key]=false)});let joyX=0,joyY=0,joyId=null;const stick=document.querySelector('#stick'),knob=document.querySelector('#knob');function joyMove(e){const b=stick.getBoundingClientRect();let x=e.clientX-b.left-b.width/2,y=e.clientY-b.top-b.height/2;const max=36,len=Math.hypot(x,y);if(len>max){x*=max/len;y*=max/len}joyX=x/max;joyY=y/max;knob.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;}function joyStop(){joyId=null;joyX=joyY=0;knob.style.transform='translate(-50%,-50%)'}stick.addEventListener('pointerdown',e=>{if(joyId!==null)return;e.preventDefault();joyId=e.pointerId;stick.setPointerCapture(e.pointerId);joyMove(e)});stick.addEventListener('pointermove',e=>{if(e.pointerId===joyId)joyMove(e)});for(const event of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(event,e=>{if(e.pointerId===joyId)joyStop()});window.addEventListener('blur',()=>{joyStop();keys={};dragging=false});let dragging=false,lastX=0,lastY=0,lookId=null;
+const lookPointers=new Map();
+renderer.domElement.addEventListener('pointerdown',e=>{if(lookPointers.size>=2|| (e.pointerType==='mouse'&&e.button!==0))return;lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});renderer.domElement.setPointerCapture(e.pointerId);if(lookPointers.size===2){dragging=false;return}lookId=e.pointerId;dragging=true;lastX=e.clientX;lastY=e.clientY});
+for(const evt of ['pointerup','pointercancel','lostpointercapture'])window.addEventListener(evt,e=>{if(!lookPointers.delete(e.pointerId))return;const next=lookPointers.entries().next();if(!next.done){lookId=next.value[0];lastX=next.value[1].x;lastY=next.value[1].y;dragging=!dodge}else{dragging=false;lookId=null}});
+window.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size===2){return}if(!dragging||dodge||e.pointerId!==lookId)return;yaw-=(e.clientX-lastX)*.0035;pitch=THREE.MathUtils.clamp(pitch+(e.clientY-lastY)*.0025,.02,.30);lastX=e.clientX;lastY=e.clientY});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();},{passive:false});
+window.addEventListener('blur',()=>{lookPointers.clear();dragging=false;lookId=null});
+function interact(){if(dodge){dodgeThrow();return}if(ride)return;if(!inside){let p=playPoints.find(p=>Math.hypot(p.x-player.position.x,p.z-player.position.z)<3);if(p){startRide(p);return}}if(lunchState.sitting){standUp();return}if(panel.style.display==='block')close();if(inside){if(inside==='library'){const booth=roomObjects.filter(o=>Math.hypot(o.x-player.position.x,o.z-player.position.z)<3.2).sort((a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0];if(booth){booth.fn();return}}if(player.position.z>9 && Math.abs(player.position.x)<2.2){if(inside==='lobby')leaveInterior();else switchRoom('lobby');return}let item=roomObjects.filter(o=>Math.hypot(o.x-player.position.x,o.z-player.position.z)<(inside==='library'?3.2:2.25)).sort((a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0];if(item){item.fn();return}toast('가구나 시설 가까이 이동해서 E를 누르세요!');return}const entrance=locations.find(l=>l.id==='lobby');if(Math.abs(player.position.x)<5 && player.position.z>=-11.6 && player.position.z<=-2){enterInterior('lobby');return}near=locations.filter(l=>l.id==='lobby').map(l=>({l,d:Math.hypot(player.position.x-l.x,player.position.z-l.doorZ)})).sort((a,b)=>a.d-b.d).find(v=>v.d<6)?.l;if(!near){toast('중앙현관 앞 노란 길로 이동하거나 중앙현관 입장 버튼을 누르세요!');return}enterInterior(near.id)}
+const food=[['🍲','미역국'],['🍚','쌀밥'],['🥩','갈비찜'],['🥬','김치'],['🍜','잡채'],['🧃','딸기주스']];let votes=JSON.parse(localStorage.getItem('voxelVotes')||'{}');let badges=JSON.parse(localStorage.getItem('voxelBadges')||'[]');function badge(n){if(!badges.includes(n)){badges.push(n);localStorage.setItem('voxelBadges',JSON.stringify(badges));toast('🏅 '+n+' 배지 획득!')}}
+function openRoom(id){if(id==='lunch')openLunchServing()
+if(id==='council')show('📮 학생자치실',`<p>학교에 바라는 점을 적어 보세요.</p><textarea id="idea" rows="4" maxlength="300" placeholder="학교에 바라는 점을 적어 주세요"></textarea><button id="copyIdea">건의 내용 복사</button><p><small>현재는 시제품으로 제출·집계 서버가 없습니다. 복사한 내용을 학교 설문에 붙여 넣을 수 있어요.</small></p><hr><b>🗳️ 종소리 선호도 (이 기기에서만 저장)</b><div id="poll"><button data-v="딩동댕동">딩동댕동</button> <button data-v="밝은 멜로디">밝은 멜로디</button> <button data-v="자연 소리">자연 소리</button></div><p id="voted"></p>`);if(id==='council'){document.querySelector('#copyIdea').onclick=async()=>{let v=document.querySelector('#idea').value;if(!v.trim())return toast('내용을 입력해 주세요');try{await navigator.clipboard.writeText(v);toast('복사했어요!')}catch{toast('복사 권한이 필요합니다')}};panel.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{votes.sound=b.dataset.v;localStorage.setItem('voxelVotes',JSON.stringify(votes));document.querySelector('#voted').textContent='선택: '+votes.sound;badge('학생자치 참여자')})}
+if(id==='board')show('📢 학교 소식 & 미션 게시판',`<p>📌 <b>학교 소식</b>: 우리 학교 블록 월드에 오신 걸 환영해요!</p><p>🕵️ <b>미션</b>: 도서관을 방문하고 책 퀴즈를 풀어 보세요.</p><p>🏅 <b>내 배지</b>: ${badges.length?badges.join(' · '):'아직 없어요'}</p><button id="mission">⭐ 출석 미션 완료</button>`);if(id==='board')document.querySelector('#mission').onclick=()=>{badge('블록 학교 출석왕');openRoom('board')};
+if(id==='library')startReading();
+ if(id==='gym')openGym()}
+// Three-dimensional free-throw scene: a voxel avatar raises its arms and shoots an animated ball.
+let game=null,hoopView=null;
+function openGym(){
+ show('🏀 3D 블록 농구 자유투',`<p>아바타가 직접 공을 던져요! <b>스페이스바</b> 또는 <b>🏀 슛!</b>을 누르세요. 바늘은 천천히 움직입니다.</p><div id="basket3d" style="width:100%;height:270px;border:3px solid #7aa4c5;border-radius:12px;overflow:hidden;background:#bfe7ff"></div><div id="mini"><div id="target"></div><div id="cursor"></div></div><p id="score">성공 0 / 0회 (총 5번)</p><button id="shoot">🏀 슛! (Space)</button> <button id="restart">🔄 다시 시작</button><p id="result" aria-live="polite">초록 구역을 노려 보세요!</p>`);
+ game={t:0,shots:0,score:0,active:true,flying:false,flight:0,hit:false};
+ document.querySelector('#shoot').onclick=shoot;document.querySelector('#restart').onclick=openGym;
+ buildHoopView();
+}
+function buildHoopView(){
+ const host=document.querySelector('#basket3d');if(!host)return;
+ const sc=new THREE.Scene();sc.background=new THREE.Color(0xc9ecff);
+ const ca=new THREE.PerspectiveCamera(44,host.clientWidth/270,.1,80);ca.position.set(9,7,15);ca.lookAt(0,2,-4);
+ const re=new THREE.WebGLRenderer({antialias:true,alpha:false});re.setPixelRatio(Math.min(devicePixelRatio,1.5));re.setSize(host.clientWidth,270);host.appendChild(re.domElement);
+ sc.add(new THREE.HemisphereLight(0xffffff,0x8a91a5,2.5));const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(-3,10,5);sc.add(light);
+ const bx=(x,y,z,w,h,d,c)=>cube(sc,x,y,z,w,h,d,c);
+ bx(0,-.18,-3,16,.3,20,0xe1b27b);for(let x=-7;x<=7;x+=2)bx(x,-.01,-3,.05,.015,19,0xf4e4bd);
+ bx(0,3.9,-10.8,.2,7,.2,0x63798e);bx(0,5.2,-10.4,3.6,2.4,.23,0xf8f8fc);
+ bx(0,5.2,-10.25,1.4,.09,.1,0xe84c4c);
+ // orange rim: torus lies horizontally, facing up
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(.8,.095,10,28),new THREE.MeshLambertMaterial({color:0xf07d24}));rim.rotation.x=Math.PI/2;rim.position.set(0,4.35,-9.2);sc.add(rim);
+ for(let i=0;i<12;i++){let ang=i*Math.PI/6;let top=new THREE.Vector3(Math.cos(ang)*.76,4.31,-9.2+Math.sin(ang)*.76),bottom=new THREE.Vector3(Math.cos(ang)*.49,3.55,-9.2+Math.sin(ang)*.49);let dir=bottom.clone().sub(top);let mesh=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,dir.length(),5),mat(0xffffff));mesh.position.copy(top.clone().add(bottom).multiplyScalar(.5));mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());sc.add(mesh)}
+ const person=group(sc,0,0,3.5);cube(person,0,1.55,0,1.2,1.4,.75,avatarColor);cube(person,0,2.62,0,1.05,1.05,1.05,0xffd2a3);cube(person,-.34,.55,0,.43,1.1,.5,0x425a9d);cube(person,.34,.55,0,.43,1.1,.5,0x425a9d);cube(person,0,3.16,0,1.1,.2,1.1,0x674a32);
+ const left=group(person,-.84,2.02,-.12),right=group(person,.84,2.02,-.12);cube(left,0,-.48,0,.38,1.02,.43,avatarColor);cube(right,0,-.48,0,.38,1.02,.43,avatarColor);
+ const ball=new THREE.Mesh(new THREE.SphereGeometry(.37,18,12),mat(0xe77a2d));sc.add(ball);ball.position.set(0,2.1,2.75);
+ const stripes=new THREE.Group();ball.add(stripes);for(let a=0;a<2;a++){let ring=new THREE.Mesh(new THREE.TorusGeometry(.372,.012,6,40),mat(0x593821));ring.rotation.y=a*Math.PI/2;stripes.add(ring)}
+ hoopView={sc,ca,re,host,ball,left,right,person};
+}
+function shoot(){
+ if(!game||!game.active||game.flying||!document.querySelector('#basket3d'))return;
+ const p=(Math.sin(game.t*1.15)+1)/2;game.hit=p>.40&&p<.60;
+ game.shots++;game.flying=true;game.flight=0;
+ document.querySelector('#shoot').disabled=true;
+ document.querySelector('#result').textContent='🏀 아바타가 공을 던집니다!';
+}
+function updateHoop(dt){
+ if(!game||!hoopView||!document.querySelector('#basket3d'))return;
+ const h=hoopView;
+ if(game.flying){
+  game.flight+=dt;const t=Math.min(game.flight/1.55,1);
+  // Physical-looking arc from the avatar's hands to the basket.
+  const endX=game.hit?0:2.15;
+  h.ball.position.set(endX*t,2.55+(4.35-2.55)*t+3.4*4*t*(1-t),2.7+(-9.2-2.7)*t);
+  h.ball.rotation.x+=dt*9;
+  const lift=Math.min(game.flight/.28,1);
+  h.left.rotation.x=-2.45*lift;h.right.rotation.x=-2.45*lift;
+  if(t>=1){
+   game.flying=false;
+   if(game.hit){game.score++;document.querySelector('#result').textContent='🎉 골인! 아바타가 슛을 성공했어요!'}
+   else document.querySelector('#result').textContent='아쉬워요! 공이 골대를 빗나갔어요.';
+   document.querySelector('#score').textContent=`성공 ${game.score} / ${game.shots}회 (총 5번)`;
+   if(game.shots>=5){game.active=false;if(game.score>=3)badge('농구 슛 마스터');document.querySelector('#result').textContent+=` 최종 ${game.score}점! 다시 시작할 수 있어요.`}
+   else document.querySelector('#shoot').disabled=false;
+  }
+ }else{h.ball.position.set(0,2.1,2.75);h.left.rotation.x=0;h.right.rotation.x=0;}
+ h.re.render(h.sc,h.ca);
+}
+// Cafeteria quest: collect a tray, serve six dishes in order, find a seat and eat.
+let lunchState={step:0,sitting:false,eating:false,eatTime:0,chair:null};
+let servingStaff=[];const servingXs=[-6,-3.6,-1.2,1.2,3.6,6];
+let heldTray=null,foodModels=[];
+const lunchColors=[0x488d55,0xf9f6df,0x965335,0xe95447,0xe9c56a,0xf69cbb];
+const lunchNames=['미역국','쌀밥','갈비찜','김치','잡채','딸기주스'];
+function addTray(){if(heldTray)return;heldTray=new THREE.Group();player.add(heldTray);heldTray.position.set(0,1.55,0.95);cube(heldTray,0,0,0,2.25,.16,1.38,0x899da9);cube(heldTray,0,.13,0,2.17,.10,1.3,0xc9d5de);for(let i=0;i<6;i++){let x=-.71+(i%3)*.71,z=-.34+Math.floor(i/3)*.68;cube(heldTray,x,.2,z,.63,.07,.57,0x778f9c)}}
+function foodOnTray(i){if(!heldTray)return;let x=-.71+(i%3)*.71,z=-.34+Math.floor(i/3)*.68;let g=group(heldTray,x,.29,z);let c=lunchColors[i];if(i===0){cube(g,0,.1,0,.52,.2,.46,0x536b76);for(let j=0;j<5;j++)cube(g,(j%3-1)*.14,.24,(Math.floor(j/3)-.5)*.14,.13,.08,.12,c)}else if(i===5){cube(g,0,.18,0,.35,.4,.3,c);cube(g,0,.4,0,.17,.08,.18,0xffffff)}else{for(let j=0;j<5;j++)cube(g,(j%3-1)*.16,.12+(j%2)*.09,(Math.floor(j/3)-.5)*.15,.18,.17,.19,c)}foodModels.push(g)}
+function clearLunch(){if(heldTray){player.remove(heldTray);heldTray.traverse(o=>{if(o.geometry)o.geometry.dispose()});heldTray=null}foodModels=[];lunchState={step:0,sitting:false,eating:false,eatTime:0,chair:null};player.position.y=0;player.scale.y=1}
+function openLunchServing(){badge('급식실 탐험가');if(lunchState.step>0&&lunchState.step<=6){let targetX=servingXs[lunchState.step-1];if(Math.abs(player.position.x-targetX)>1.85||Math.abs(player.position.z+6.25)>2.6){toast('👣 바닥의 노란 화살표를 따라 '+lunchNames[lunchState.step-1]+' 배식대로 이동하세요!');return}}if(lunchState.step===0){show('🍽️ 3D 급식 체험 — 식판 받기',`<p>배식대 앞에 도착했어요! 먼저 반짝이는 <b>6칸 철제 식판</b>을 받아 보세요.</p><p>오늘의 메뉴: 미역국 · 쌀밥 · 갈비찜 · 김치 · 잡채 · 딸기주스</p><button id="getTray">✨ 식판 받기</button>`);document.querySelector('#getTray').onclick=()=>{addTray();lunchState.step=1;close();toast('🍱 식판을 받았어요! 노란 발자국을 따라 첫 번째 미역국 배식대로 가세요.')}}else if(lunchState.step<=6){let i=lunchState.step-1;show('🥄 배식 중 — '+lunchNames[i],`<p><b>${lunchState.step}/6번째 음식</b>을 담을 차례예요.</p><div id="menu">${food.map(([e,n],j)=>`<div style="opacity:${j<i?'.45':'1'}"><span>${e}</span>${n}${j<i?' ✓':''}</div>`).join('')}</div><p>식판에 음식이 하나씩 실제 3D 블록으로 쌓입니다.</p><button id="serveOne">${food[i][0]} ${lunchNames[i]} 담기</button>`);document.querySelector('#serveOne').onclick=()=>{foodOnTray(i);lunchState.step++;close();toast(lunchState.step===7?'🍱 배식 완료! 식탁에 다가가 E를 눌러 앉으세요.':food[i][0]+' '+lunchNames[i]+' 담았어요! 다음 배식대로 이동하세요.');if(lunchState.step===7)badge('배식 완성!')}}else{toast('배식이 끝났어요! 식탁에 가서 E를 눌러 앉으세요.')}}
+function sitForLunch(x,z){if(lunchState.step<7){toast('🍱 먼저 배식대에서 여섯 가지 음식을 모두 받아 주세요!');return}lunchState.sitting=true;lunchState.chair={x,z};player.position.set(x,0,z+1.35);player.rotation.y=Math.PI;player.scale.y=.73;show('🪑 자리에 앉았어요!',`<p>아바타가 식탁에 앉아 식판을 앞에 놓았어요. 이제 맛있게 먹어 볼까요?</p><button id="eatNow">🥢 맛있게 먹기</button> <button id="standNow">일어나기</button><p><small>식사 애니메이션이 끝나면 급식 배지를 받을 수 있어요.</small></p>`);document.querySelector('#eatNow').onclick=()=>{close();lunchState.eating=true;lunchState.eatTime=0;toast('😋 냠냠! 급식을 먹는 중이에요!')};document.querySelector('#standNow').onclick=standUp}
+function standUp(){lunchState.sitting=false;lunchState.eating=false;player.scale.y=1;player.position.y=0;close();toast('🪑 자리에서 일어났어요!')}
+function updateLunchAnimation(dt){if(!lunchState.eating)return;lunchState.eatTime+=dt;player.rotation.z=Math.sin(lunchState.eatTime*8)*.035;if(heldTray)heldTray.position.y=1.55+Math.sin(lunchState.eatTime*9)*.11;if(lunchState.eatTime>5){lunchState.eating=false;player.rotation.z=0;if(heldTray)heldTray.position.y=1.55;badge('맛있는 급식 탐험가');show('🎉 급식 체험 완료!',`<p>미역국, 쌀밥, 갈비찜, 김치, 잡채, 딸기주스를 모두 맛있게 먹었어요!</p><p>🏅 <b>맛있는 급식 탐험가</b> 배지를 획득했어요.</p><button id="againLunch">🔄 다시 배식하기</button> <button id="finishLunch">🚶 일어나기</button>`);document.querySelector('#againLunch').onclick=()=>{standUp();clearLunch();toast('배식대에서 다시 시작할 수 있어요!')};document.querySelector('#finishLunch').onclick=standUp}}
+
+// True 3D voxel rooms: moveable floor, walls, furnishings and interactive props.
+
+const bookQuestions=[
+['마당을 나온 암탉의 주인공은?','잎싹','초록머리','노든','찰리'],['어린 왕자가 소중히 여기는 꽃은?','장미','튤립','민들레','백합'],['긴긴밤의 코뿔소 이름은?','노든','잎싹','피터','모모'],['강아지똥이 피우는 데 도움을 준 꽃은?','민들레','장미','해바라기','무궁화'],['찰리와 초콜릿 공장의 주인은?','윌리 웡카','찰리 버킷','해리 포터','피터 팬'],['앨리스가 따라간 동물은?','흰 토끼','고양이','다람쥐','여우'],['해리 포터의 마법학교는?','호그와트','네버랜드','오즈','나니아'],['피터 팬이 사는 곳은?','네버랜드','오즈','호그와트','런던'],['오즈의 마법사의 소녀 주인공은?','도로시','앨리스','웬디','하이디'],['아낌없이 주는 나무는 어떤 나무?','사과나무','배나무','소나무','벚나무'],['어린 왕자의 작가는?','생텍쥐페리','로알드 달','루이스 캐럴','안데르센'],['피노키오가 거짓말을 하면?','코가 길어진다','귀가 작아진다','머리가 커진다','발이 커진다'],['신데렐라가 무도회에서 잃어버린 것은?','유리 구두','왕관','목걸이','장갑'],['아기 돼지 삼형제에서 가장 튼튼한 집은?','벽돌집','짚집','나무집','종이집'],['빨간 모자가 찾아가는 사람은?','할머니','선생님','왕자','친구']];
+function shuffled(a){return a.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1])}
+function showNewBooks(){show('📚 이달의 신간도서','<p>학교 도서관 신간 목록은 등록 예정입니다.</p><hr><b>추천 도서 (예시)</b><p>어린 왕자 · 마당을 나온 암탉 · 긴긴밤</p><p>실제 신간 목록이 등록되면 이곳에서 확인할 수 있어요.</p>')}
+document.querySelector('#readQuiz').onclick=()=>{keys={};startReading()};document.querySelector('#newBooks').onclick=()=>{keys={};showNewBooks()};
+function startReading(){let qs=shuffled(bookQuestions).slice(0,5),i=0,score=0;function next(){if(i===5){if(score===5)badge('경명 독서왕');show('📚 독서 퀴즈 결과',`<p>${score}/5 정답!</p><button id="retryRead">다시 도전</button>`);document.querySelector('#retryRead').onclick=startReading;return}let q=qs[i],opts=shuffled(q.slice(1));show('📚 독서 퀴즈 '+(i+1)+'/5',`<p>${q[0]}</p><div style="display:grid;gap:8px">${opts.map((v,j)=>`<button data-book="${j}">${v}</button>`).join('')}</div><p id="bookFeedback"></p>`);panel.querySelectorAll('[data-book]').forEach(b=>b.onclick=()=>{let ok=opts[+b.dataset.book]===q[1];if(ok)score++;panel.querySelectorAll('[data-book]').forEach(x=>x.disabled=true);document.querySelector('#bookFeedback').innerHTML=(ok?'정답! ':'정답은 '+q[1]+'입니다. ')+ '<button id="bookNext">다음</button>';document.querySelector('#bookNext').onclick=()=>{i++;next()}})}next()}
+const playPoints=[];let ride=null;
+function playground(){let g=group(scene,34,0,23);cube(g,0,.03,0,10,.12,23,0x9bd6ad);for(let x of [-2,2])for(let z of [-8,-5])cube(g,x,2,z,.3,4,.3,0xf5b642);cube(g,0,3.8,-6.5,4,.3,3,0xf5b642);let slide=cube(g,0,2,-2.7,1.8,.25,7.6,0xf36b58);slide.rotation.x=.52;for(let j=0;j<7;j++)cube(g,-2.6,j*.55,-8,.8,.15,.6,0x487ac5);for(let x of [-3,3])cube(g,x,2,5,.25,4,.25,0x428ac5);cube(g,0,4,5,6,.25,.25,0x428ac5);for(let x of [-.7,.7])cube(g,x,2.4,5,.08,2.8,.08,0x687887);cube(g,0,1,5,1.8,.2,.8,0xf8b34d);for(let x of [-2,2])cube(g,x,1.8,10,.25,3.6,.25,0x65a8e5);cube(g,0,3.6,10,4,.2,.2,0x65a8e5);for(let [z,label] of [[-1,'미끄럼틀'],[5,'그네'],[10,'철봉']]){let t=textSprite(label,3);t.position.set(0,4.8,z);g.add(t);playPoints.push({x:34,z:23+z,label})}}
+playground();
+function startRide(p){if(inside||ride)return;keys={};ride={p,t:0,old:player.position.clone()};close();toast(p.label+' 체험 시작!')}
+function updateRide(dt){if(!ride)return;let r=ride;r.t+=dt;let t=r.t;let p=r.p;if(p.label==='미끄럼틀'){let u=Math.min(t/3,1);player.position.set(p.x,3.7*(1-u),p.z-5.5+7*u)}else if(p.label==='그네'){player.position.set(p.x,.8+.65*(1-Math.cos(t*3)),p.z+1.6*Math.sin(t*3))}else{player.position.set(p.x,.45,p.z);player.children[2].rotation.x=Math.PI;player.children[3].rotation.x=Math.PI;player.rotation.z=.09*Math.sin(t*4)}if(t>4){player.position.copy(r.old);player.rotation.z=0;player.children[2].rotation.x=0;player.children[3].rotation.x=0;ride=null;badge(p.label+' 체험')}}
+function wash(){let steps=['물로 손 적시기','비누 묻히기','손바닥·손등·손가락 사이 문지르기','흐르는 물로 헹구기','손 말리기'],i=0;function draw(){if(i===steps.length){badge('손 씻기 달인');show('🧼 성공!','<p>깨끗한 손 완성!</p>');return}let opts=shuffled(steps);show('🧼 손 씻기 챌린지 '+(i+1)+'/5','<p>다음 순서는 무엇일까요?</p>'+opts.map((v,j)=>`<button style="display:block;margin:5px 0" data-wash="${j}">${v}</button>`).join(''));panel.querySelectorAll('[data-wash]').forEach(b=>b.onclick=()=>{if(opts[+b.dataset.wash]===steps[i]){washEffect(i);i++;close();setTimeout(()=>{if(inside==='wash')draw()},1800)}else toast('다시 생각해 보세요!')})}draw()}
+let dodge=null;function dodgeStart(){close();courtNPC.forEach((n,i)=>{n.visible=true;n.position.set((i-1)*6,0,-6)});dodge={time:30,score:0,hp:3,cd:0,balls:[],throwCd:0};toast('피구 시작! 화면에서 조준점을 옮기고 활동 버튼으로 던지세요!')}
+function dodgeThrow(){if(!dodge||dodge.throwCd>0)return;const ray=new THREE.Raycaster();ray.setFromCamera(aim,camera);const plane=new THREE.Plane(new THREE.Vector3(0,1,0),-1.4);let target=new THREE.Vector3();if(!ray.ray.intersectPlane(plane,target))return toast('상대의 몸통을 조준하세요!');if(Math.hypot(target.x-player.position.x,target.z-player.position.z)<.2)return;dodge.throwCd=.6;makeBall(player.position,target,true)}
+let courtNPC=[];function makeBall(from,to,friendly){let b=new THREE.Mesh(new THREE.SphereGeometry(.32,12,8),mat(friendly?0x49a8ff:0xf04c48));roomWorld.add(b);b.position.copy(from).add(new THREE.Vector3(0,1.4,0));let v=to.clone().sub(from);v.y=0;v.normalize().multiplyScalar(11);dodge.balls.push({b,v,friendly})}
+function dodgeUpdate(dt){if(!dodge)return;let d=dodge;d.time-=dt;d.cd-=dt;d.throwCd-=dt;if(d.cd<=0){let n=courtNPC.filter(n=>n.visible);if(n.length)makeBall(n[Math.floor(Math.random()*n.length)].position,player.position,false);d.cd=1.25}for(let n of courtNPC)if(n.visible)n.position.x=THREE.MathUtils.clamp(n.position.x+Math.sin(d.time*2+n.position.z)*dt*2,-9,9);for(let i=d.balls.length-1;i>=0;i--){let o=d.balls[i];o.b.position.addScaledVector(o.v,dt);let hit=false;if(o.friendly){for(let n of courtNPC)if(n.visible&&Math.hypot(n.position.x-o.b.position.x,n.position.z-o.b.position.z)<.85){n.visible=false;d.score++;hit=true;break}}else if(Math.hypot(player.position.x-o.b.position.x,player.position.z-o.b.position.z)<.8){d.hp--;hit=true}if(hit||Math.abs(o.b.position.x)>12||Math.abs(o.b.position.z)>12){roomWorld.remove(o.b);o.b.geometry.dispose();o.b.material.dispose();d.balls.splice(i,1)}}if(d.hp<=0||d.time<=0||d.score===3){for(let o of d.balls)roomWorld.remove(o.b);let score=d.score;dodge=null;if(score===3)badge('피구 챔피언');show('🔴 피구 결과',`<p>맞힌 NPC ${score}/3</p><button id="retryDodge">다시 도전</button>`);document.querySelector('#retryDodge').onclick=()=>{courtNPC.forEach(n=>n.visible=true);dodgeStart()}}else document.querySelector('#hintRoom').textContent=`피구 ${Math.ceil(d.time)}초 · 체력 ${d.hp} · 점수 ${d.score}/3`}
+const outdoorMeshes=scene.children.slice();let roomWorld=null,roomObjects=[],lastOutside=new THREE.Vector3();
+const roomThemes={wash:{wall:0xc5e8ef,floor:0xc4dce3,title:'🧼 화장실'},court:{wall:0xc6e4b0,floor:0x8dcf89,title:'🔴 중앙 안뜰 피구장'},lobby:{wall:0xf4d6b3,floor:0xe5cfa7,title:'🏫 중앙현관 · 1층 복도'},lunch:{wall:0xffe2a5,floor:0xf5caa8,title:'🍱 블록 급식실'},council:{wall:0xd9c8ff,floor:0xece0ff,title:'📮 학생자치실'},board:{wall:0xc3ebff,floor:0xf9e3b4,title:'📢 학교 게시판'},library:{wall:0xc9efd3,floor:0xc8a27a,title:'📚 블록 도서관'},gym:{wall:0xb5e3ff,floor:0xd5a86e,title:'🏀 블록 체육관'}};
+function decoText(parent,label,x,y,z,w=4){let t=textSprite(label,w);t.position.set(x,y,z);parent.add(t);return t}
+function prop(x,z,label,fn){roomObjects.push({x,z,label,fn});}
+function desk(x,z,c=0xc98e6a){cube(roomWorld,x,1.15,z,3,.35,1.8,c);for(let dx of [-1.2,1.2])for(let dz of [-.65,.65])cube(roomWorld,x+dx,.55,z+dz,.22,1.1,.22,0x79553e)}
+function shelf(x,z){cube(roomWorld,x,2,z,3.2,4,.85,0x99603d);for(let j=0;j<3;j++){cube(roomWorld,x,1+j*1.15,z+.49,3,.13,.12,0xffe3a0);for(let i=0;i<6;i++)cube(roomWorld,x-1.2+i*.45,1.45+j*1.12,z+.5,.32,.85,.27,[0xff7e95,0x7dceec,0xf9d36a,0xa6db97,0xc7a0fa][(i+j)%5])}}
+function interior(id){let t=roomThemes[id];roomWorld=group(scene);roomObjects=[];servingStaff=[];cube(roomWorld,0,-.2,0,24,.4,24,t.floor);cube(roomWorld,0,3,-12,24,6,.55,t.wall);cube(roomWorld,-12,3,0,.55,6,24,t.wall);cube(roomWorld,12,3,0,.55,6,24,t.wall);
+// 출입문 양쪽의 실제 벽과 문틀: 벽은 통과할 수 없고 출입문에서만 E로 이동
+cube(roomWorld,-6.9,3,11.8,10.2,6,.35,t.wall);
+cube(roomWorld,6.9,3,11.8,10.2,6,.35,t.wall);
+cube(roomWorld,0,4.85,11.8,3.6,2.3,.35,t.wall);
+// 카메라를 위해 벽을 투명하게 만들지 않고 출입은 E로 전환
+for(let x of [-10,-6,-2,2,6,10]){cube(roomWorld,x,4.5,-11.66,2.4,1.5,.12,0x8ed9f4)}
+for(let x=-10;x<=10;x+=4)for(let z=-10;z<=10;z+=4)cube(roomWorld,x,.025,z,3.9,.025,3.9,0xffffff);
+decoText(roomWorld,t.title,0,5.1,-11.15,8);decoText(roomWorld,'🚪 나가기 : E',0,2.4,11.3,4);cube(roomWorld,0,1.3,11.5,3.6,2.6,.15,0x74cbb3);
+if(id==='wash'){for(let x of [-6,0,6]){cube(roomWorld,x,1,-8,3,2,2,0xffffff);cube(roomWorld,x,2.1,-8,2.6,.2,1.7,0x89cde0);cube(roomWorld,x,2.6,-8.6,.2,.8,.2,0x7896a5);prop(x,-5.8,'손 씻기',wash)}decoText(roomWorld,'손 씻기 챌린지',0,4,-10,7)}else if(id==='court'){cube(roomWorld,0,.04,0,20,.08,20,0xe2b68c);cube(roomWorld,0,.1,0,20,.05,.15,0xffffff);courtNPC=[];for(let x of [-6,0,6]){let n=avatar(0xf26c6c);scene.remove(n);roomWorld.add(n);n.position.set(x,0,-6);courtNPC.push(n)}prop(0,6,'피구 시작',dodgeStart);decoText(roomWorld,'피구 챌린지 · 활동 버튼으로 공 던지기',0,4,-10,9)}else if(id==='lobby'){
+ // 중앙 복도: 왼쪽 도서관, 오른쪽 급식실. 문 앞에서 E로 입장.
+ for(let z of [-8,-4,0,4,8]){
+  cube(roomWorld,0,.055,z,3.1,.06,1.0,0xffe8a5);
+  cube(roomWorld,0,5.65,z,2.2,.16,.22,0xffe9a8);
+ }
+ for(const [id2,name,side,col] of [['library','📚 도서관',-1,0x65b995],['lunch','🍱 급식실',1,0xf2ad55]]){
+  const x=side*5.8,z=0;
+  // 복도 양쪽 벽과 문틀
+  for(const zz of [-7,7]) cube(roomWorld,x,2.8,zz,.4,5.6,10,0xf1e4d0);
+  cube(roomWorld,x,4.65,0,.4,1.9,4,0xf1e4d0);
+  cube(roomWorld,x,1.7,z,.24,3.4,3.8,col);
+  cube(roomWorld,x-side*.18,2.35,z,.12,.95,2.6,0xa6e3f4);
+  cube(roomWorld,x-side*.22,1.35,z+1.35,.16,.18,.25,0xffe19a);
+  decoText(roomWorld,name,x-side*.7,3.95,z,4.2);
+  const ix=side*4.1;
+  cube(roomWorld,ix,.045,z,2.2,.06,3.2,0xffd66b);
+  decoText(roomWorld,'E : 입장',ix,1.0,z+1.7,2.0);
+  prop(ix,z,name+' 입장',()=>switchRoom(id2));
+ }
+ decoText(roomWorld,'← 도서관     급식실 →',0,4.4,-8.8,8.8);
+ decoText(roomWorld,'중앙 복도',0,3.5,-8.8,5);
+ cube(roomWorld,0,1.4,-10.7,5,2.8,.35,0xffe6a4);
+ decoText(roomWorld,'학교 소식 · 미션 안내',0,3.1,-10.3,6.6);
+ prop(0,-8.6,'중앙 게시판 확인',()=>openRoom('board'));for(let [x,z,id2,label] of [[-4,7,'wash','화장실'],[4,-7,'court','중앙 안뜰']]){cube(roomWorld,x,.06,z,2,.1,2,0x82d9e4);cube(roomWorld,x+(x<0?-1.2:1.2),1.6,z,.2,3.2,2.3,0x65b6c8);decoText(roomWorld,label,x,2.8,z,3);prop(x,z,label+' 입장',()=>switchRoom(id2))}
+}
+
+if(id==='lunch'){
+for(let x of [-7,0,7])for(let z of [-5,2]){desk(x,z);for(let dx of [-1,1])cube(roomWorld,x+dx,.6,z+1.45,.85,1.2,.8,0xff98ad)}
+cube(roomWorld,0,1,-9,15,2,2,0xffb96d);cube(roomWorld,0,2.15,-9,14,.24,2.3,0xffffff);
+for(let i=0;i<6;i++){let x=-6+i*2.4;cube(roomWorld,x,2.3,-8.7,1.8,.12,1.3,0x9aa9b2);cube(roomWorld,x,2.48,-8.7,1.4,.28,.95,[0xfff4cf,0xe6f0d6,0xc67b4b,0xee675c,0xf1d68e,0xffa8c3][i]);decoText(roomWorld,['미역국','쌀밥','갈비찜','김치','잡채','딸기주스'][i],x,3.45,-8.9,2.1)}
+// 배식 담당 블록 NPC 6명과 바닥 대기선 / 진행 화살표
+for(let i=0;i<6;i++){
+ let x=servingXs[i];let staff=group(roomWorld,x,0,-10.1);
+ cube(staff,0,1.05,0,.83,1.25,.52,[0xff8ba8,0x7bc7f4,0xa5db8d,0xf8c677,0xb8a2ee,0x82d9cb][i]);
+ cube(staff,0,2.05,0,.77,.77,.72,0xffd7ad);
+ cube(staff,0,2.55,0,.87,.27,.8,0x59493c);
+ cube(staff,-.22,2.08,.37,.085,.085,.05,0x25384b);cube(staff,.22,2.08,.37,.085,.085,.05,0x25384b);
+ cube(staff,-.6,1.2,.1,.3,.88,.35,0xffd7ad);cube(staff,.6,1.2,.1,.3,.88,.35,0xffd7ad);
+ cube(staff,-.22,.25,0,.28,.5,.34,0x344c76);cube(staff,.22,.25,0,.28,.5,.34,0x344c76);
+ decoText(roomWorld,'👩‍🍳 '+(i+1)+'번 배식',x,3.85,-9.7,2.1);servingStaff.push(staff);
+ cube(roomWorld,x,.055,-5.9,1.55,.08,.52,0xffe16a);
+ decoText(roomWorld,'⬆ '+(i+1),x,.4,-5.65,1.5);
+ prop(x,-6.1,(i+1)+'번 '+lunchNames[i]+' 배식 담당 선생님',()=>{
+   if(lunchState.step===0){toast('🍽️ 먼저 입구의 식판 받는 곳으로 가세요!');return}
+   if(lunchState.step===i+1){openLunchServing();return}
+   if(lunchState.step>i+1){toast('😊 '+lunchNames[i]+'은 이미 받았어요! 다음 줄로 가세요.');return}
+   toast('👩‍🍳 '+(i+1)+'번 배식대예요. '+lunchNames[lunchState.step-1]+'부터 순서대로 받아 주세요!');
+ });
+}
+cube(roomWorld,-9,.06,-5.9,1.8,.08,.8,0x8ce7d1);
+decoText(roomWorld,'① 식판 받기',-9,1.1,-5.8,2.7);
+prop(-9,-5.9,'🍱 식판 받기',()=>{if(lunchState.step===0)openLunchServing();else toast('식판을 받았어요! 노란 배식선을 따라 이동하세요.')});
+for(let i=0;i<5;i++){cube(roomWorld,(servingXs[i]+servingXs[i+1])/2,.04,-5.9,.55,.05,.18,0xffe16a)}
+for(let x of [-7,0,7])for(let z of [-5,2]){cube(roomWorld,x,1.45,z,2.3,.12,1.2,0xcbdce6);prop(x,z+1.5,'🪑 자리에 앉아 식사하기',()=>sitForLunch(x,z))}decoText(roomWorld,'🍱 식판 받기 → 1~6번 배식 줄 따라가기 → 식탁 → 식사',0,4.4,-10.4,10);
+}else if(id==='council'){
+for(let x of [-6,0,6]){desk(x,-4,0xd5b4ec);cube(roomWorld,x,.65,-2.3,1.5,1.1,1.2,0xa5c6f2)}
+cube(roomWorld,7,1.7,3,3,3,2,0xff89bd);cube(roomWorld,7,3.35,3,2.5,.3,1.5,0xffcce4);decoText(roomWorld,'건의함',7,4.2,3,2.7);prop(7,3,'📮 건의함 열기',()=>openRoom('council'));
+cube(roomWorld,-7,2,-9,6,3,.2,0xfff0ae);decoText(roomWorld,'우리의 의견으로 바꾸는 학교',-7,3,-8.7,5.7);
+}else if(id==='board'){
+cube(roomWorld,0,2.6,-10.7,15,4,.35,0x69b98b);for(let x of [-5,0,5]){cube(roomWorld,x,2.8,-10.42,4,2.7,.12,0xfff5c8);decoText(roomWorld,['학교 소식','미스터리 미션','배지 모으기'][(x+5)/5],x,3.2,-10.1,3.6)}
+for(let x of [-7,0,7]){cube(roomWorld,x,1.3,1,3,2,2,0xffd36f);decoText(roomWorld,'📢 게시물',x,2.8,2.1,3);prop(x,1,'📢 게시판 읽기',()=>openRoom('board'))}
+}else if(id==='library'){
+for(let x of [-8,-3,3,8])for(let z of [-8,-5])shelf(x,z);
+for(const [x,title,sub,col,action] of [[-3.1,'독서 퀴즈','도전하기 · E',0x438cc7,()=>openRoom('library')],[3.1,'이달의 신간도서','목록 보기 · E',0x528c77,showNewBooks]]){
+ desk(x,0,col);cube(roomWorld,x,2.65,-.65,4.8,2.5,.25,col);decoText(roomWorld,title,x,3.25,-.43,4.5);decoText(roomWorld,sub,x,2.15,-.43,3.6);prop(x,2.3,title,action);
+}
+}else if(id==='gym'){
+cube(roomWorld,0,.04,0,16,.06,19,0xe7bd8d);for(let z of [-8,8])cube(roomWorld,0,.09,z,15,.07,.14,0xffffff);cube(roomWorld,0,.09,0,15,.07,.13,0xffffff);
+for(let x of [-10,10]){cube(roomWorld,x,1,0,2,2,16,0x7bb5e5);for(let z of [-6,-2,2,6])cube(roomWorld,x,2.1,z,2.4,.5,3,0x5d91d6)}
+cube(roomWorld,0,3.6,-10.2,.28,6,.3,0x586d7c);cube(roomWorld,0,5.4,-9.8,3.5,2.1,.25,0xffffff);cube(roomWorld,0,4.45,-8.9,1.4,.13,1.4,0xff754b);
+// orange basketball near shooting line
+const ball=new THREE.Mesh(new THREE.SphereGeometry(.52,12,8),mat(0xe87834));ball.position.set(0,.6,4);roomWorld.add(ball);decoText(roomWorld,'🏀 자유투 도전!',0,3,-10,5);prop(0,4,'🏀 자유투 게임',()=>openRoom('gym'));
+}
+}
+// AABB collision: 벽/책장/책상/배식대/의자/골대 및 NPC에 적용.
+// 바닥의 얇은 표시, 장식 간판, 머리보다 높은 장식은 장애물에서 제외.
+function collectIndoorSolids(){
+ indoorSolids=[];
+ roomWorld.updateMatrixWorld(true);
+ const box=new THREE.Box3();
+ roomWorld.traverse(o=>{
+  if(!o.isMesh || !o.geometry || o.geometry.type!=='BoxGeometry') return;
+  box.setFromObject(o);
+  if(box.max.y<.38 || box.min.y>2.9 || box.max.y-box.min.y<.18)return;
+  // 바닥 전체와 천장 장식은 통과 판정에서 제외
+  if(box.max.x-box.min.x>23 && box.max.z-box.min.z>23)return;
+  indoorSolids.push({x:(box.min.x+box.max.x)/2,z:(box.min.z+box.max.z)/2,w:box.max.x-box.min.x,d:box.max.z-box.min.z});
+ });
+}
+function hitSolid(x,z,rad=.48,npcSelf=null){
+ if(inside){
+  if(x < -11.45+rad || x > 11.45-rad || z < -11.45+rad || z > 11.45-rad)return true;
+ }else if(x < -39 || x > 39 || z < -38 || z > 46)return true;
+ const obstacles=inside?indoorSolids:outdoorSolids;
+ for(const b of obstacles){
+  const dx=Math.max(Math.abs(x-b.x)-b.w/2,0),dz=Math.max(Math.abs(z-b.z)-b.d/2,0);
+  if(dx*dx+dz*dz<rad*rad)return true;
+ }
+ if(!inside){
+  for(const n of npcs){if(n===npcSelf || !n.a.visible)continue;
+   if(Math.hypot(x-n.a.position.x,z-n.a.position.z)<rad+.45)return true;
+  }
+ }
+ if(npcSelf && Math.hypot(x-player.position.x,z-player.position.z)<rad+.48)return true;
+ return false;
+}
+function moveWithCollision(entity,dx,dz,radius=.48,npcSelf=null){
+ // substeps avoid tunneling through thin obstacles on slow devices
+ const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.22));
+ for(let i=0;i<steps;i++){
+  const nx=entity.position.x+dx/steps,nz=entity.position.z+dz/steps;
+  if(!hitSolid(nx,entity.position.z,radius,npcSelf))entity.position.x=nx;
+  if(!hitSolid(entity.position.x,nz,radius,npcSelf))entity.position.z=nz;
+ }
+}
+document.querySelector('#exitRoom').onclick=()=>{if(inside){if(lunchState.sitting)standUp();if(inside==='lobby')leaveInterior();else switchRoom('lobby')}};function switchRoom(id){clearWash();dodge=null;const previous=inside;if(inside==='lunch')clearLunch();if(roomWorld){scene.remove(roomWorld);roomWorld.traverse(o=>{if(o.geometry)o.geometry.dispose()});roomWorld=null}inside=id;interior(id);collectIndoorSolids();player.position.set(id==='lobby'&&previous==='library'?-3.2:id==='lobby'&&previous==='lunch'?3.2:0,0,id==='lobby'&&['library','lunch'].includes(previous)?0:8);yaw=0;moveBasis=null;moveSector=null;pitch=.16;dist=11;document.querySelector('#exitRoom').textContent=id==='lobby'?'🚪 운동장으로 나가기':'↩️ 중앙 복도로 돌아가기';toast('🚪 '+roomThemes[id].title+' 입장!')}function enterInterior(id){lastOutside.copy(player.position);inside=id;document.querySelector('#exitRoom').style.display='block';document.querySelector('#hintRoom').style.display='block';outdoorMeshes.forEach(o=>{if(o!==player && o!==camera && !(o.isLight))o.visible=false});interior(id);collectIndoorSolids();player.position.set(0,0,id==='library'?8:4);player.visible=true;yaw=0;moveBasis=null;moveSector=null;pitch=.16;dist=11;document.querySelector('#exitRoom').textContent=id==='lobby'?'🚪 운동장으로 나가기':'↩️ 중앙 복도로 돌아가기';toast('🚪 '+roomThemes[id].title+' 입장! 내부를 자유롭게 걸어 보세요.');}
+function leaveInterior(){clearWash();dodge=null;if(inside==='lunch')clearLunch();if(roomWorld){scene.remove(roomWorld);roomWorld.traverse(o=>{if(o.geometry)o.geometry.dispose()});roomWorld=null}outdoorMeshes.forEach(o=>o.visible=true);inside=null;dist=13;document.querySelector('#exitRoom').style.display='none';document.querySelector('#hintRoom').style.display='none';roomObjects=[];indoorSolids=[];player.position.copy(lastOutside);toast('🌈 운동장으로 돌아왔어요!')}
+
+document.querySelector('#goWash').onclick=()=>{close();switchRoom('wash')};document.querySelector('#goCourt').onclick=()=>{close();switchRoom('court')};document.querySelector('#goLibrary').onclick=()=>{close();switchRoom('library')};document.querySelector('#goLunch').onclick=()=>{close();switchRoom('lunch')};
+
+const aim=new THREE.Vector2(0,0);const dot=document.createElement('div');dot.id='aimDot';dot.hidden=true;dot.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:28px;height:28px;border:3px solid red;border-radius:50%;pointer-events:none;z-index:5';document.body.append(dot);
+function setAim(e){aim.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px'}
+renderer.domElement.addEventListener('pointermove',e=>{if(dodge&&lookPointers.size<2)setAim(e)});renderer.domElement.addEventListener('pointerdown',e=>{if(dodge&&lookPointers.size<2){setAim(e);dragging=false}});
+const rm=document.createElement('div');rm.id='rideMenu';rm.style.cssText='position:absolute;right:12px;bottom:205px;z-index:4;display:flex;flex-direction:column;gap:4px';for(const p of playPoints){let b=document.createElement('button');b.textContent=p.label+' 체험';b.onclick=()=>{if(!inside&&!ride){player.position.set(p.x-2,0,p.z);startRide(p)}};rm.append(b)}document.body.append(rm);const st=document.createElement('style');st.textContent='[hidden]{display:none!important}canvas{touch-action:none}';document.head.append(st);
+let washFX=null;function clearWash(){if(washFX){washFX.g.parent?.remove(washFX.g);washFX.g.traverse(o=>{o.geometry?.dispose();o.material?.dispose()});washFX=null}}
+function washEffect(step){clearWash();if(!roomWorld)return;let x=[-6,0,6].sort((a,b)=>Math.abs(a-player.position.x)-Math.abs(b-player.position.x))[0];let g=group(roomWorld,x,2.35,-7.7);let bubbles=step===1||step===2;let particles=[];for(let i=0;i<32;i++){let m=new THREE.Mesh(new THREE.SphereGeometry(bubbles?.13:.055,8,6),new THREE.MeshBasicMaterial({color:bubbles?0xf5fcff:0x53bfff,transparent:true,opacity:.8}));g.add(m);particles.push(m)}washFX={g,particles,t:0,bubbles};if(step===4){clearWash();return}try{let ac=new (window.AudioContext||window.webkitAudioContext)();let len=ac.sampleRate*.55,buf=ac.createBuffer(1,len,ac.sampleRate),data=buf.getChannelData(0);for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*.15*(1-i/len);let src=ac.createBufferSource();src.buffer=buf;let filter=ac.createBiquadFilter();filter.type='bandpass';filter.frequency.value=bubbles?1200:3200;src.connect(filter);filter.connect(ac.destination);src.start();src.onended=()=>ac.close()}catch(e){}}
+function updateWash(dt){if(!washFX)return;let f=washFX;f.t+=dt;f.particles.forEach((m,i)=>{let t=(f.t*1.8+i/32)%1;m.position.set(Math.sin(i*7+f.t)* (f.bubbles?.55:.12),f.bubbles?t*.8:.65-t*.8,Math.cos(i*3)* (f.bubbles?.4:.1))});if(f.t>3)clearWash()}
+
+let moveBasis=null,moveSector=null;let clock=new THREE.Clock();function animate(){requestAnimationFrame(animate);let dt=Math.min(clock.getDelta(),.05);updateLunchAnimation(dt);updateRide(dt);updateWash(dt);document.querySelector("#aimDot").hidden=!dodge;document.querySelector("#rideMenu").hidden=!!inside||!!ride;if(!ride&&panel.style.display!=='block'&&!lunchState.sitting){let f=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0)-joyY,r=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;if(Math.hypot(f,r)>.08){let v=new THREE.Vector3(r,0,-f);if(v.length()>1)v.normalize();let sector=Math.round(Math.atan2(r,f)/(Math.PI/4));if(moveBasis===null||sector!==moveSector||dragging){moveBasis=yaw;moveSector=sector;}v.applyAxisAngle(new THREE.Vector3(0,1,0),dodge?yaw:moveBasis);moveWithCollision(player,v.x*dt*9,v.z*dt*9);player.rotation.y=Math.atan2(v.x,v.z);if(!dodge&&!dragging){let target=Math.atan2(-v.x,-v.z);let delta=Math.atan2(Math.sin(target-yaw),Math.cos(target-yaw));yaw+=THREE.MathUtils.clamp(delta*(1-Math.exp(-1.8*dt)),-0.85*dt,0.85*dt);}}else{moveBasis=null;moveSector=null;}}else{moveBasis=null;moveSector=null;}let focus=player.position.clone().add(new THREE.Vector3(0,2.1,0));let offset=new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch)*dist,Math.sin(pitch)*dist+.55,Math.cos(yaw)*Math.cos(pitch)*dist);let desired=focus.clone().add(offset);if(inside){desired.x=THREE.MathUtils.clamp(desired.x,inside==='lobby'?-5.2:-10.8,inside==='lobby'?5.2:10.8);desired.z=THREE.MathUtils.clamp(desired.z,-10.8,10.8);desired.y=Math.min(desired.y,focus.y+Math.hypot(desired.x-focus.x,desired.z-focus.z)*.42);const ray=desired.clone().sub(focus);let length=ray.length();ray.normalize();const caster=new THREE.Raycaster(focus,ray,0,length);const cameraObstacles=[];roomWorld.traverse(o=>{if(o.isMesh&&o.geometry?.type==='BoxGeometry')cameraObstacles.push(o)});const hits=caster.intersectObjects(cameraObstacles,false).filter(h=>h.distance>.05);if(hits.length)desired=focus.clone().addScaledVector(ray,Math.max(.4,hits[0].distance-.25));camera.position.copy(desired);}else camera.position.lerp(desired,.13);camera.lookAt(focus);if(!inside)npcs.forEach(n=>{
+ n.phase+=dt;
+ if(n.phase>4.2){n.phase=0;n.heading+=(Math.random()-.5)*1.8}
+ let vx=Math.sin(n.heading)*dt*2.1,vz=Math.cos(n.heading)*dt*2.1;
+ let px=n.a.position.x,pz=n.a.position.z;
+ moveWithCollision(n.a,vx,vz,.43,n);
+ if(Math.hypot(n.a.position.x-px,n.a.position.z-pz)<dt*.35){n.heading+=1.8;n.phase=0}
+ n.a.rotation.y=n.heading;
+});document.querySelector('#readQuiz').hidden=inside!=='library';document.querySelector('#newBooks').hidden=inside!=='library';document.querySelector('#goWash').hidden=inside!=='lobby';document.querySelector('#goCourt').hidden=inside!=='lobby';document.querySelector('#goLibrary').hidden=inside!=='lobby';document.querySelector('#goLunch').hidden=inside!=='lobby';near=null;let best=5.5;for(let l of (inside?[]:locations.filter(l=>l.id==='lobby'))){let doorZ=l.doorZ;let d=Math.hypot(player.position.x-l.x,player.position.z-doorZ);if(d<best){best=d;near=l}}if(inside){let item=roomObjects.filter(o=>Math.hypot(o.x-player.position.x,o.z-player.position.z)<(inside==='library'?3.2:2.25)).sort((a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0];document.querySelector('#hintRoom').textContent=lunchState.sitting?'🥢 식사 중 · E: 일어나기':inside==='lunch'&&lunchState.step>0&&lunchState.step<7?'🍱 '+lunchState.step+'/6 · '+lunchNames[lunchState.step-1]+' 배식대로 이동! · '+(item?'E: '+item.label:'노란 줄을 찾아보세요'):item?'E : '+item.label:inside==='lobby'?'왼쪽 도서관 · 오른쪽 급식실 | 문 앞 E':'가구 가까이 이동 → E로 이용'}status.innerHTML=inside?`📍 ${roomThemes[inside].title} · 3D 실내 탐험 중<br>🚪 입구 쪽으로 가서 E를 누르면 나가요 · E: 시설 이용`:`📍 ${near?'문 앞: '+near.emoji+' '+near.name:'운동장 탐험 중'}<br>🏅 배지 ${badges.length}개 · 다른 학생 NPC ${npcs.length}명`;if(game&&game.active&&panel.style.display==='block'&&document.querySelector('#cursor')&&!game.flying){game.t+=dt;document.querySelector('#cursor').style.left=((Math.sin(game.t*1.15)+1)*49)+'%'}dodgeUpdate(dt);updateHoop(dt);renderer.render(scene,camera)}animate();window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});pick();
+</script></body></html>
